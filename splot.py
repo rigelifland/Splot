@@ -1,8 +1,10 @@
+"""Simple function plotting using offline Plotly."""
+
 import plotly.graph_objs as go
 import plotly
-import pandas as pd
 import numpy as np
 import types
+
 
 def mesh_function_2D(fn, x_min, x_max, bins, **kwargs):
     """Take in a function and calculate a mesh of points."""
@@ -16,7 +18,8 @@ def mesh_function_2D(fn, x_min, x_max, bins, **kwargs):
     return [x_mesh, y_mesh, name, kw_names]
 
 
-def mesh_function_3D(fn, x_min=1, x_max=10, y_min=1, y_max=10, bins=20, **kwargs):
+def mesh_function_3D(fn, x_min=1, x_max=10,
+                     y_min=1, y_max=10, bins=20, **kwargs):
     """Take a function and create a matrix of points for plotting."""
     x_mesh = np.arange(x_min, x_max, (x_max-x_min)/float(bins))
     y_mesh = np.arange(y_min, y_max, (y_max-y_min)/float(bins))
@@ -74,43 +77,42 @@ def fig2d(lines, title='Function'):
     return fig
 
 
-def splot(fn_list, x_min = 1, x_max = 10, y_min = 1, y_max = 10, bins = 100, inline=False, **kwargs):
+def splot(fn_list, x_min=1, x_max=10,
+          y_min=1, y_max=10, bins=300, inline=True, **kwargs):
     """Grab a function(s), mesh it, the graph it."""
-    if type(fn_list) == types.FunctionType:
-        yaxis = 'y'
-        data = mesh_function_2D(fn_list, x_min, x_max, bins, **kwargs)
-        data.append(yaxis)
-        data_list = [data]
-        #data_list = [mesh_function_2D(fn_list, x_min, x_max, bins, **kwargs)]
+    title = "Comparison: "
+
+    if isinstance(fn_list, types.FunctionType):
         title = fn_list.__name__
+        fn_list = [fn_list]
 
-    elif type(fn_list) == list:
-        title = "Comparison: "
-        data_list = []
-        for fn_group in fn_list:
-            fn = fn_group[0]
-            try:
-                fn_kwargs = fn_group[1]
-            except:
-                fn_kwargs = {}
+    data_list = []
+    for fn_group in fn_list:
+        if isinstance(fn_group, types.FunctionType):
+            fn_group = [fn_group]
+        fn = fn_group[0]
+        try:
+            fn_kwargs = fn_group[1]
+        except:
+            fn_kwargs = {}
 
-            try:
-                yaxis = fn_kwargs.pop('yaxis')
-                if (yaxis == 'right') or (yaxis == 'y2'):
-                    yaxis = 'y2'
-                elif (yaxis == 'left') or (yaxis == 'y'):
-                    yaxis = 'y'
-                else:
-                    raise ValueError('Invalid yaxis choice. Try "right" or "left"')
-            except:
+        try:
+            yaxis = fn_kwargs.pop('yaxis')
+            if (yaxis == 'right') or (yaxis == 'y2'):
+                yaxis = 'y2'
+            elif (yaxis == 'left') or (yaxis == 'y'):
                 yaxis = 'y'
+            else:
+                raise ValueError('Invalid yaxis choice. Try "right" or "left"')
+        except:
+            yaxis = 'y'
 
-            data = mesh_function_2D(fn, x_min, x_max, bins, **fn_kwargs)
-            data.append(yaxis)
-            data_list.append(data)
+        data = mesh_function_2D(fn, x_min, x_max, bins, **fn_kwargs)
+        data.append(yaxis)
+        data_list.append(data)
 
     fig = fig2d(data_list, title=title)
-    if inline == True:
+    if inline:
         plotly.offline.iplot(fig)
     else:
         plotly.offline.plot(fig)
@@ -119,16 +121,17 @@ def splot(fn_list, x_min = 1, x_max = 10, y_min = 1, y_max = 10, bins = 100, inl
 
 def splot3d(fn_list, x_min=1, x_max=10, y_min=1, y_max=10, bins=20, **kwargs):
     """take in a function of two variables and graph it."""
-    if type(fn_list) == types.FunctionType:
-        zmatrix = mesh_function_3D(fn_list, x_min, x_max, y_min, y_max, bins, **kwargs)
-        data = [dict(z=zmatrix, type='surface')]
+    if isinstance(fn_list, types.FunctionType):
+        fn_list = [fn_list]
 
-    elif type(fn_list) == list:
-        data = []
-        for fn in fn_list:
-            zmatrix = mesh_function_3D(fn, x_min, x_max, y_min, y_max, bins, **kwargs)
-            data.append(dict(z=zmatrix, type='surface'))
-    else:
-        raise ValueError('Invalid input. Must be function or list of functions')
+    data = []
+    for fn in fn_list:
+        zmatrix = mesh_function_3D(fn, x_min, x_max,
+                                   y_min, y_max, bins, **kwargs)
+        data.append(dict(z=zmatrix, type='surface'))
 
-    plotly.offline.plot(data)
+    plotly.offline.iplot(data)
+
+
+def kw(**kwargs):
+    return kwargs
